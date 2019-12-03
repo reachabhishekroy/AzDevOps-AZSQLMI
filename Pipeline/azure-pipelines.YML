@@ -1,0 +1,74 @@
+trigger: none
+stages:
+- stage: Analyze
+  jobs:
+  - job: CheckStuff
+    pool:
+     name: Hosted VS2017
+    steps:
+    - task: AzurePowerShell@4
+      inputs:
+       azureSubscription: 'DevConnection'
+       ScriptType: 'InlineScript'
+       errorActionPreference: 'silentlyContinue'
+       azurePowerShellVersion: 'LatestVersion'
+
+- stage: Build
+
+  jobs:
+
+  - job: Download_Modules_And_Create_BuildArtifact
+    pool:
+      name: Hosted VS2017
+    steps:
+    - task: CopyFiles@2
+      displayName: 'Copy BA Parameterfiles to: $(build.artifactstagingdirectory)\'
+      inputs:
+        SourceFolder: ''
+        TargetFolder: '$(build.artifactstagingdirectory)'
+        CleanTargetFolder: true
+        OverWrite: true
+   
+    - task: UniversalPackages@0
+      inputs:
+        command: 'download'
+        downloadDirectory: '$(build.artifactstagingdirectory)\Modules\SQLManagedInstances'
+        feedsToUse: 'internal'
+        vstsFeed: 'FoundationArtifacts'
+        vstsFeedPackage: 'sqlmanagedinstances'
+        vstsPackageVersion: '0.6.0'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Build Artifact'
+      inputs:
+        artifactName: 'drop'
+        pathtoPublish: '$(build.artifactstagingdirectory)'
+
+- stage: Dev
+  dependsOn:
+  - Build
+  condition: 
+  jobs:
+
+  - job: Deploy_SQLManagedInstance
+    timeoutInMinutes: 0
+    condition: 
+    pool:
+      name: Hosted VS2017
+
+    steps:
+    - download: current
+      artifact: 'drop'
+
+    - task: AzurePowerShell@4
+      inputs:
+        azureSubscription: 'DevConnection'
+        ScriptType: 'FilePath'
+        ScriptPath: $(Pipeline.Workspace)\drop\Deploy.ps1
+        ScriptArguments: -DeploymentName SQLMI-Deployment-$(Build.BuildNumber)
+                    -TemplateFile $(Pipeline.Workspace)\drop\Parameters\AZSQLMI\deploy.json
+                    -ParametersFile '$(Pipeline.Workspace)\drop\Parameters\AZSQLMI\parameters.json'
+                    -ResourceGroupParametersFile $(Pipeline.Workspace)\drop\Parameters\ResourceGroup\parameters.json
+
+        azurePowerShellVersion: LatestVersion
+        errorActionPreference: stop
