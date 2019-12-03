@@ -1,0 +1,44 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {        
+        "managedInstanceName": {
+            "value": "my-sqlmid01"
+        },
+        "administratorLogin": {
+            "value": "my-sqlmid01-admin"
+        },
+        "administratorLoginPassword": {
+            "reference": {
+                "keyVault": {
+                 "id": "/subscriptions/xyz/resourceGroups/my-resource-group/providers/Microsoft.KeyVault/vaults/azsqlmi-vault-01"
+                },
+                "secretName":"my-sqlmid01-admin"
+            }    
+        },
+        "virtualNetworkName": {
+            "value": "my-sqlmi-vnet"
+        },
+        "addressPrefix": {
+            "value": "10.0.0.0/16"
+        },
+        "subnetName": {
+            "value": "my-sqlmi-subnet"
+        },
+        "subnetPrefix": {
+            "value": "10.0.0.0/24"
+        },
+        "skuName": {
+            "value": "GP_Gen5"
+        },
+        "vCores": {
+            "value": 8
+        },
+        "storageSizeInGB": {
+            "value": 256
+        },
+        "licenseType": {
+            "value": "LicenseIncluded"
+        }                                                           
+    }
+}
